@@ -37,7 +37,7 @@ public class GameManager : MonoBehaviour
 
         GameObject uicanvas = GameObject.Find("Canvas");
 
-        foreach(Transform t in uicanvas.transform.GetComponentInChildren<Transform>())
+        foreach(Transform t in uicanvas.transform.GetComponentsInChildren<Transform>())
         {
             if (t.name.CompareTo("Text_ammo") == 0)
             {

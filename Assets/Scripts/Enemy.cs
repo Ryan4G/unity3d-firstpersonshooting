@@ -22,20 +22,20 @@ public class Enemy : MonoBehaviour
 
     int m_life = 5;
 
-    //protected EnemySpawn m_spawn;
+    protected EnemySpawn m_spawn;
 
     // Start is called before the first frame update
     void Start()
     {
+        m_transform = this.transform;
+
         m_ani = this.GetComponent<Animator>();
 
-        m_transform = this.transform;
         m_player = GameObject.FindGameObjectWithTag("Player").GetComponent<Player>();
 
         m_agent = GetComponent<NavMeshAgent>();
         m_agent.speed = m_moveSpeed;
 
-        Debug.Log(m_agent.isActiveAndEnabled);
         m_agent.SetDestination(m_player.transform.position);
     }
 
@@ -50,18 +50,18 @@ public class Enemy : MonoBehaviour
         m_timer -= Time.deltaTime;
 
         AnimatorStateInfo stateInfo = m_ani.GetCurrentAnimatorStateInfo(0);
-    
+
         if (stateInfo.fullPathHash == Animator.StringToHash("Base Layer.idle")
             && !m_ani.IsInTransition(0))
         {
-            m_ani.SetBool("idle", true);
+            m_ani.SetBool("idle", false);
 
             if(m_timer > 0)
             {
                 return;
             }
 
-            if(Vector3.Distance(m_transform.position, m_player.transform.position) < 1.5f)
+            if (Vector3.Distance(m_transform.position, m_player.transform.position) < 1.5f)
             {
                 m_agent.ResetPath();
                 m_ani.SetBool("attack", true);
@@ -75,7 +75,7 @@ public class Enemy : MonoBehaviour
                 m_ani.SetBool("run", true);
             }
         }
-
+        
         if (stateInfo.fullPathHash == Animator.StringToHash("Base Layer.run")
             && !m_ani.IsInTransition(0))
         {
@@ -94,18 +94,36 @@ public class Enemy : MonoBehaviour
                 m_ani.SetBool("attack", true);
             }
         }
-
+        
         if (stateInfo.fullPathHash == Animator.StringToHash("Base Layer.attack")
             && !m_ani.IsInTransition(0))
         {
-            RotateTo();
             m_ani.SetBool("attack", false);
+
+            RotateTo();
 
             if (stateInfo.normalizedTime >= 1.0f)
             {
-                m_ani.SetBool("idle", false);
+                m_ani.SetBool("idle", true);
 
-                m_timer = 2;
+                m_timer = 5;
+
+                m_player.OnDamage(1);
+            }
+        }
+        
+        if (stateInfo.fullPathHash == Animator.StringToHash("Base Layer.death")
+           && !m_ani.IsInTransition(0))
+        {
+            m_ani.SetBool("death", false);
+
+            if (stateInfo.normalizedTime >= 1.0f)
+            {
+                GameManager.Instance.SetScore(100);
+
+                m_spawn.m_enemyCount--;
+
+                Destroy(this.gameObject);
             }
         }
     }
@@ -118,5 +136,23 @@ public class Enemy : MonoBehaviour
             m_rotSpeed * Time.deltaTime, 0);
 
         m_transform.rotation = Quaternion.LookRotation(newDir);
+    }
+
+    public void OnDamage(int damage)
+    {
+        m_life -= damage;
+
+        if (m_life <= 0)
+        {
+            m_ani.SetBool("death", true);
+
+            m_agent.ResetPath();
+        }
+    }
+
+    public void Init(EnemySpawn spawn)
+    {
+        m_spawn = spawn;
+        m_spawn.m_enemyCount++;
     }
 }
